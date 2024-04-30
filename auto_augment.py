@@ -7,21 +7,15 @@ max_magnitude = 103
 
 class TimeSeriesAutoAugment(object):
     def __init__(self):
-        self.policies = [
-            ['Crop', 0.23, 0.9, 'AddNoise', 0.29, 0.1],
-            ['Drift', 0.4, 0.1, 'Reverse', 0.8, 5],
-            ['Crop', 0.8, 0.8, 'AddNoise', 0.99, 0.04],
-            ['Crop', 0.6, 0.99, 'Reverse', 0.4, 9],
-            ['Crop', 0.79, 0.7, 'Drift', 0.72, 0.3],
-            ['Drift', 0.5, 0.5, 'AddNoise', 0.21, 0.2],
-            ['Drift', 0.84, 0.9, 'Reverse', 0.94, 6],
-            ['Drift', 0.31, 0.4, 'Crop', 0.6, 0.3],
-            ['AddNoise', 0.26, 0.1, 'Drift', 0.64, 0.2],
-            ['AddNoise', 0.8, 0.3, 'Crop', 0.3, 0.7],
-            ['Reverse', 0.62, 0.3, 'Drift', 0.58, 0.4],
-            ['Reverse', 0.5, 7, 'Crop', 0.89, 0.96],
-            ['Reverse', 0.47, 1, 'AddNoise', 0.7, 0.4],
-        ]
+        self.policies = []
+        for _ in range(10):
+            policy = []
+            for _ in range(6):
+                policy.append(random.choice(list(operations.keys())))
+                policy.append(random.random())
+                policy.append(random.random())
+            self.policies.append(policy)
+                
         #save in a txt file
         with open('policies.txt', 'w') as f:
             for policy in self.policies:
@@ -49,17 +43,26 @@ def apply_policy(series_XY, policy):
     return series_XY
 
 def crop(series_XY, magnitude):
+    max_size = len(series_XY[0])
+    min_size = 0
+    magnitude = round(min_size + magnitude * (max_size - min_size))
     X = series_XY[0]
     Y = series_XY[1]
-    croped = Crop(size=round(magnitude * len(X))).augment(X, Y)
+    croped = Crop(size=magnitude).augment(X, Y)
     return Resize(size=len(X)).augment(croped[0], croped[1])
 
 def drift(series_XY, magnitude):
+    max_max_drift = 1
+    min_max_drift = 0
+    magnitude = min_max_drift + magnitude * (max_max_drift - min_max_drift)
     X = series_XY[0]
     Y = series_XY[1]
     return Drift(max_drift=magnitude).augment(X, Y)
 
 def add_noise(series_XY, magnitude):
+    max_scale = 10
+    min_scale = 0 
+    magnitude = min_scale + magnitude * (max_scale - min_scale)
     X = series_XY[0]
     Y = series_XY[1]
     return AddNoise(scale=magnitude).augment(X, Y)

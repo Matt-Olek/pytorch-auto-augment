@@ -3,13 +3,13 @@ import pandas as pd
 import numpy as np
 from torch.utils.data import DataLoader
 
-def get_dataloader(batch_size=128, transform_train=None, transform_test=None,model_name='ECG200'):
+def get_dataloader(batch_size=128, transform_train=None, transform_test=None,model_name='ECG200',preprocess_function=None):
     train = pd.read_csv('data/UCRArchive_2018/'+model_name+'/'+model_name+'_TRAIN.tsv', sep='\t', header=None)
     test = pd.read_csv('data/UCRArchive_2018/'+model_name+'/'+model_name+'_TEST.tsv', sep='\t', header=None)
-    def f(x):
-        return x -1
-    train[0] = train[0].apply(lambda x: f(x))
-    test[0] = test[0].apply(lambda x: f(x))
+    if preprocess_function is not None:
+        f = lambda x: preprocess_function(x, model_name)
+        train[0] = train[0].apply(lambda x: f(x))
+        test[0] = test[0].apply(lambda x: f(x))
     train_np = train.to_numpy()
     test_np = test.to_numpy()   
     train = train_np.reshape(np.shape(train_np)[0], 1, np.shape(train_np)[1])

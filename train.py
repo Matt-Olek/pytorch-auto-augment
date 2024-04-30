@@ -16,7 +16,7 @@ from auto_augment import TimeSeriesAutoAugment
 
 # ------------------------------ Seed ------------------------------ #
 
-seed = 1234
+seed = 123
 torch.manual_seed(seed)
 np.random.seed(seed)
 random.seed(seed)
@@ -56,7 +56,7 @@ def train_model(train_loader, model, criterion, optimizer, epoch, scheduler=None
     return log, lr
 
 
-def main_loop(auto_augment=False, cutout=False,model_name='default', pprint=True, lr=1e-5, epochs=300, batch_size=200,weight_decay=1e-5,plot=True):
+def main_loop(auto_augment=False, cutout=False,model_name='default', pprint=True, lr=1e-5, epochs=300, batch_size=200,weight_decay=1e-5,plot=True,preprocess_function=None):
     cudnn.benchmark = True
     # data loading code
     if auto_augment:
@@ -65,11 +65,11 @@ def main_loop(auto_augment=False, cutout=False,model_name='default', pprint=True
     else:
         transform_train = lambda x: x
 
-    print('Training model %s ...' %model_name )
+    print('Training model on dataset %s ...' %model_name )
 
     transform_test = lambda x: x
 
-    train_loader, test_loader = data_loader.get_dataloader(batch_size=batch_size, transform_train=transform_train, transform_test=transform_test,model_name=model_name)
+    train_loader, test_loader = data_loader.get_dataloader(batch_size=batch_size, transform_train=transform_train, transform_test=transform_test,model_name=model_name,preprocess_function=preprocess_function) 
 
     if auto_augment:
         model_name = model_name + '_(AutoAugment)'
@@ -79,7 +79,6 @@ def main_loop(auto_augment=False, cutout=False,model_name='default', pprint=True
     criterion = nn.CrossEntropyLoss().cuda()
     optimizer = optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=lr, weight_decay=weight_decay)
     scheduler = lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.5, patience=100)
-    epochs = 1000
     log = pd.DataFrame(index=[], columns=['epoch', 'lr', 'loss', 'acc', 'val_loss', 'val_acc'])
     best_acc = 0
     for epoch in tqdm(range(epochs)):
@@ -124,13 +123,25 @@ def main_loop(auto_augment=False, cutout=False,model_name='default', pprint=True
         utils.plot_logs(model_name)
     return log
 
+# ------------------------------ Preprocess ------------------------------ #
+
+def preprocess_function(x,model_name):
+    if model_name == 'ECG200':
+        if x ==-1:
+            x = 0
+        return x
+    if model_name == 'ECG5000':
+        return x-1
+    else:
+        return x
 # ------------------------------ __main__ ------------------------------ #
 
 if __name__ == '__main__':
     lr = 0.0001
     batch_size = 20
+    epochs = 200
     weight_decay = 1e-6
     model_name = 'ECG5000'
-    main_loop(auto_augment=True, cutout=False, model_name=model_name, pprint=False, lr=lr, epochs=300, batch_size=batch_size,weight_decay=weight_decay,plot=True)
-    main_loop(auto_augment=False, cutout=False, model_name=model_name,pprint=False, lr=lr, epochs=300, batch_size=batch_size,weight_decay=weight_decay,plot=True)
+    main_loop(auto_augment=True, cutout=False, model_name=model_name, pprint=False, lr=lr, epochs=epochs, batch_size=batch_size,weight_decay=weight_decay,plot=True,preprocess_function=preprocess_function)
+    main_loop(auto_augment=False, cutout=False, model_name=model_name,pprint=False, lr=lr, epochs=epochs, batch_size=batch_size,weight_decay=weight_decay,plot=True,preprocess_function=preprocess_function)
 
